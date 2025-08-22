@@ -75,9 +75,9 @@ export default function Home() {
       <footer className="py-6 text-center text-slate-500 text-sm border-t border-slate-800">
         <p>© {new Date().getFullYear()} TypeX. All rights reserved.</p>
         <div className="flex justify-center gap-6 mt-2">
-          <a href="#" className="hover:text-orange-400 transition">About</a>
-          <a href="#" className="hover:text-orange-400 transition">GitHub</a>
-          <a href="#" className="hover:text-orange-400 transition">Contact</a>
+          <Link to="/about" className="hover:text-orange-400 transition">About</Link>
+          <a href="https://github.com/AkshitThakur003" target="_blank" rel="noopener noreferrer" className="hover:text-orange-400 transition">GitHub</a>
+          <a href="mailto:akshitthakur2003@gmail.com" className="hover:text-orange-400 transition">Contact</a>
         </div>
       </footer>
     </div>

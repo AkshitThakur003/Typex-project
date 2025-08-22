@@ -56,7 +56,7 @@ export default function About() {
           <h3 className="text-lg font-semibold">Contribute</h3>
           <p className="mt-3 text-slate-300 text-sm">Found a bug or want a feature? Contributions, issues and PRs are welcome. See the repository for setup and contributing guidelines.</p>
           <div className="mt-3">
-            <a href="https://github.com/your-repo" target="_blank" rel="noreferrer" className="inline-block px-3 py-2 rounded-lg bg-emerald-600 text-black text-sm font-medium">View on GitHub</a>
+            <a href="https://github.com/AkshitThakur003/Typex-project" target="_blank" rel="noreferrer" className="inline-block px-3 py-2 rounded-lg bg-emerald-600 text-black text-sm font-medium">View on GitHub</a>
           </div>
         </m.div>
       </div>
