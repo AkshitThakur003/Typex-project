@@ -1,0 +1,57 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.vercel
+
+# Environment files (root, backend, frontend)
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Build outputs (explicit per package)
+frontend/dist
+backend/dist
+build
+out
+
+# Coverage & reports
+coverage
+frontend/coverage
+backend/coverage
+.nyc_output
+
+# Caches
+.eslintcache
+.vite
+frontend/.vite
+
+# OS-generated files
+Thumbs.db
