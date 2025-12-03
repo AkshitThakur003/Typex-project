@@ -21,14 +21,8 @@ export default defineConfig(({ mode }) => {
       },
       // CDN support for static assets
       assetsDir: 'assets',
-      // Enable asset optimization
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
+      // Enable asset optimization (using esbuild - faster and default)
+      minify: 'esbuild',
     },
     // Base path for CDN (can be overridden by env)
     base: env.VITE_BASE_URL || '/',
