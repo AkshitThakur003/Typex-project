@@ -31,7 +31,6 @@ dist-ssr
 !.env.example
 backend/.env
 backend/.env.*
-!backend/.env.example
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
@@ -55,3 +54,6 @@ frontend/.vite
 
 # OS-generated files
 Thumbs.db
+
+# Documentation files (keep local only)
+V2_ROADMAP.md
