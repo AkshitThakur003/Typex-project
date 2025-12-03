@@ -49,6 +49,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   
   const callbackURL = getCallbackURL();
   console.log('[Passport] Google OAuth callback URL:', callbackURL);
+  console.log('[Passport] ⚠️  IMPORTANT: This URL must match EXACTLY what is configured in Google Cloud Console');
+  console.log('[Passport] ⚠️  Go to: Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs');
+  console.log('[Passport] ⚠️  Add this URL to "Authorized redirect URIs":', callbackURL);
   
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,

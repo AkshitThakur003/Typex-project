@@ -51,8 +51,9 @@ async function start() {
   const app = express();
 
   // Trust proxy - REQUIRED for Render and other reverse proxies
-  // This allows Express to correctly identify client IPs and handle X-Forwarded-* headers
-  app.set('trust proxy', true);
+  // Set to 1 to trust only the first proxy (Render's load balancer)
+  // This prevents rate limiting bypass while still allowing proper IP detection
+  app.set('trust proxy', 1);
 
   // Security headers with Helmet
   app.use(helmet({

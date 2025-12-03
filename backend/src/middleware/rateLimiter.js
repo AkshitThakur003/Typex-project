@@ -10,6 +10,10 @@ const generalLimiter = rateLimit({
   message: { error: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Use request IP from X-Forwarded-For header (trust proxy is set to 1 in index.js)
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress;
+  },
   skip: (req) => {
     // Skip general limiter for leaderboard routes (they have their own limiter)
     return req.path.startsWith('/api/leaderboard');
@@ -28,6 +32,10 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful logins against limit
+  // Use request IP from X-Forwarded-For header (trust proxy is set to 1 in index.js)
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress;
+  },
 });
 
 /**
@@ -40,6 +48,10 @@ const leaderboardLimiter = rateLimit({
   message: { error: 'Too many leaderboard requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  // Use request IP from X-Forwarded-For header (trust proxy is set to 1 in index.js)
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress;
+  },
 });
 
 module.exports = {
