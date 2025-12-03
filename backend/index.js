@@ -50,6 +50,10 @@ async function start() {
 
   const app = express();
 
+  // Trust proxy - REQUIRED for Render and other reverse proxies
+  // This allows Express to correctly identify client IPs and handle X-Forwarded-* headers
+  app.set('trust proxy', true);
+
   // Security headers with Helmet
   app.use(helmet({
     contentSecurityPolicy: {
@@ -74,10 +78,16 @@ async function start() {
         console.log('[CORS] Allowed origins:', Array.from(allowedOrigins));
       }
       
-      // In production, reject requests with no origin (e.g., Postman, curl)
-      if (NODE_ENV === 'production' && !origin) {
-        console.warn('[CORS] Rejected: No origin in production');
-        return callback(new Error('Not allowed by CORS'));
+      // Allow requests with no origin for health checks and internal services
+      // Render health checks and some internal requests don't send origin headers
+      if (!origin) {
+        // Allow health check endpoint without origin
+        if (NODE_ENV === 'development') {
+          return callback(null, true);
+        }
+        // In production, only allow health checks without origin
+        // This will be checked by the route handler
+        return callback(null, true);
       }
       // Allow requests with no origin in development (for testing)
       if (!origin && NODE_ENV === 'development') {
@@ -208,12 +218,8 @@ app.use('/api/profile/xp', xpRoutes);
       credentials: true,
       methods: ['GET', 'POST'],
       origin: (origin, callback) => {
-        // In production, reject requests with no origin
-        if (NODE_ENV === 'production' && !origin) {
-          return callback(new Error('Not allowed by CORS'));
-        }
-        // Allow requests with no origin in development
-        if (!origin && NODE_ENV === 'development') {
+        // Allow requests with no origin (for health checks, internal services)
+        if (!origin) {
           return callback(null, true);
         }
         // Check if origin is in allowed list

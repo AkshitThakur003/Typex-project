@@ -31,12 +31,16 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     
     // Construct from server URL if not provided
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-    const host = process.env.SERVER_HOST || 'localhost';
+    // Use RENDER_EXTERNAL_URL or construct from known production URL
+    const host = process.env.RENDER_EXTERNAL_URL 
+      ? new URL(process.env.RENDER_EXTERNAL_URL).hostname
+      : (process.env.SERVER_HOST || (process.env.NODE_ENV === 'production' ? 'typex-backend.onrender.com' : 'localhost'));
     const port = process.env.PORT || 5000;
     
-    // For production, assume standard ports (no port in URL)
+    // For production, use the Render URL (no port in URL)
     if (process.env.NODE_ENV === 'production') {
-      return `${protocol}://${host}/api/auth/google/callback`;
+      const productionUrl = process.env.RENDER_EXTERNAL_URL || `https://${host}`;
+      return `${productionUrl}/api/auth/google/callback`;
     }
     
     // For development, include port
