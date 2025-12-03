@@ -80,8 +80,8 @@ export default function MultiplayerRace() {
   }, [input, startedAt, socket, roomCode]);
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
-      <div className="xl:col-span-2">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start landscape-compact">
+      <div className="xl:col-span-2 order-1">
         <Race
           room={room}
           text={room?.text || state?.text || ''}
@@ -98,7 +98,7 @@ export default function MultiplayerRace() {
           isTyping={gameStarted}
         />
       </div>
-      <div className="xl:col-span-1">
+      <div className="xl:col-span-1 order-2 landscape-hide">
         <ChatBox messages={messages} onSend={(text) => socket?.emit('chat:send', { code: roomCode, text })} disabled={!roomCode} />
       </div>
     </div>

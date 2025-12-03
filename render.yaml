@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: typex-backend
+    env: node
+    region: oregon  # Change to your preferred region
+    plan: starter  # Change to 'standard' or 'pro' for production
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health  # Optional: add health check endpoint
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # The following should be set in Render Dashboard (not in YAML for security):
+      # - MONGODB_URI
+      # - JWT_SECRET
+      # - CLIENT_ORIGIN
+      # - ALLOWED_ORIGINS
+      # - GOOGLE_CLIENT_ID (optional)
+      # - GOOGLE_CLIENT_SECRET (optional)
+

@@ -16,7 +16,11 @@ const AVATAR_MAP = {
 export const defaultPrefs = {
   caretStyle: 'solid', // 'solid' | 'blink' | 'highlight'
   fontStyle: 'monospace', // 'monospace' | 'sans' | 'typewriter'
+  fontSize: 'medium', // 'small' | 'medium' | 'large' | 'xl'
   theme: 'dark',
+  // Sound preferences
+  keyboardSound: 'off', // 'off' | 'mechanical' | 'membrane' | 'typewriter' | 'soft' | 'clicky'
+  soundVolume: 0.5, // 0 to 1
   // Profile-related preferences propagated app-wide
   avatarChoice: 'emoji-rocket',
   avatarEmoji: AVATAR_MAP['emoji-rocket'] || '🙂',
@@ -59,15 +63,17 @@ export function PreferencesProvider({ children }) {
           ...defaultPrefs,
           ...serverPrefs,
           // Backfill avatar/status from top-level profile if provided
-          avatarChoice: serverPrefs.avatarChoice || data.avatarChoice || defaultPrefs.avatarChoice,
-          avatarUrl: serverPrefs.avatarUrl || data.avatarUrl || defaultPrefs.avatarUrl,
+          avatarChoice: serverPrefs.avatarChoice !== undefined ? serverPrefs.avatarChoice : (data.avatarChoice !== undefined ? data.avatarChoice : defaultPrefs.avatarChoice),
+          avatarUrl: serverPrefs.avatarUrl !== undefined ? serverPrefs.avatarUrl : (data.avatarUrl !== undefined ? data.avatarUrl : defaultPrefs.avatarUrl),
           status: serverPrefs.status || data.status || defaultPrefs.status,
         };
-        // Derive display emoji from choice if URL not provided
-        merged.avatarEmoji = AVATAR_MAP[merged.avatarChoice] || defaultPrefs.avatarEmoji;
+        // Derive display emoji from choice if URL not provided and choice exists
+        merged.avatarEmoji = merged.avatarChoice ? (AVATAR_MAP[merged.avatarChoice] || defaultPrefs.avatarEmoji) : defaultPrefs.avatarEmoji;
         setPreferences(merged);
       }
-    } catch {}
+    } catch (err) {
+      console.error('[PreferencesContext] Failed to refresh user:', err?.message || err);
+    }
   }
 
   function logout() {

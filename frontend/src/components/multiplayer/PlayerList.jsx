@@ -1,10 +1,18 @@
 import { motion as m, AnimatePresence } from 'framer-motion';
 import { usePreferences } from '../../settings/PreferencesContext.jsx';
-import Avatar from '../Avatar.jsx';
-import { useEffect, useState } from 'react';
+import PlayerCard from './PlayerCard.jsx';
 
-export default function PlayerList({ title = 'Players', players = [], leaderboard = false, isResultsView = false }) {
-  const { user, preferences } = usePreferences();
+export default function PlayerList({ 
+  title = 'Players', 
+  players = [], 
+  leaderboard = false, 
+  isResultsView = false,
+  isHost = false,
+  onKickPlayer = null,
+  onPromoteHost = null,
+}) {
+  const { user } = usePreferences();
+  
   const sorted = leaderboard
     ? [...players].sort((a, b) => {
         // results view: final order by wpm (desc), then accuracy
@@ -12,19 +20,22 @@ export default function PlayerList({ title = 'Players', players = [], leaderboar
         return (b.wpm - a.wpm) || (isResultsView ? (b.accuracy - a.accuracy) : 0);
       })
     : [...players].sort((a, b) => (a.role === 'host' ? -1 : b.role === 'host' ? 1 : 0));
+  
   return (
     <div className="bg-slate-900/70 backdrop-blur-md rounded-xl shadow border border-slate-800 p-4 md:p-5">
       <h2 className="text-sm font-semibold text-slate-300 mb-3">{title}</h2>
       <div className="space-y-2">
         <AnimatePresence initial={false}>
           {sorted.map((p, i) => (
-            <PlayerRow
+            <PlayerCard
               key={p.id}
-              p={p}
-              i={i}
-              leaderboard={leaderboard}
-              isResultsView={isResultsView}
+              player={p}
+              isHost={isHost}
               isMe={Boolean(user && p.name === user.username)}
+              showProgress={leaderboard && !isResultsView}
+              onKick={onKickPlayer}
+              onPromote={onPromoteHost}
+              index={i}
             />
           ))}
         </AnimatePresence>

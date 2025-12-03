@@ -6,7 +6,16 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "debug": "node --inspect index.js",
+    "debug:brk": "node --inspect-brk index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:load": "artillery run load-tests/api-load-test.yml",
+    "test:stress": "artillery run load-tests/stress-test.yml",
+    "test:breakpoint": "artillery run load-tests/breakpoint-test.yml",
+    "test:socket": "node load-tests/socket-load-test.js",
+    "test:quick": "artillery quick --count 10 -n 20 http://localhost:5000/api/leaderboard"
   },
   "keywords": [],
   "author": "",
@@ -17,11 +26,36 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "artillery": "^2.0.27",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.10",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.1.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.test.js",
+      "**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "xp.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/__tests__/**"
+    ],
+    "coverageDirectory": "coverage",
+    "verbose": true
   }
 }

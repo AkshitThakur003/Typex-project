@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion as m, AnimatePresence } from 'framer-motion';
+import { formatTime } from '../../utils/formatters.js';
 
 export default function ChatBox({ messages = [], onSend, disabled, collapsedOnMobile = true }) {
   const [text, setText] = useState('');
   const [open, setOpen] = useState(!collapsedOnMobile);
   const endRef = useRef(null);
 
-  const fmtTime = (ts) => {
-    try {
-      if (!ts) return '';
-      const d = new Date(ts);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '';
-    }
-  };
+  const fmtTime = formatTime;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -1,0 +1,67 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+
+jobs:
+  # Deploy Frontend to Vercel
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          VITE_BASE_URL: ${{ secrets.VITE_BASE_URL || '/' }}
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./frontend
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+  # Trigger Render Deployment (via Render API)
+  deploy-backend:
+    name: Trigger Render Deployment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Trigger Render Deploy
+        run: |
+          if [ -n "${{ secrets.RENDER_API_KEY }}" ] && [ -n "${{ secrets.RENDER_SERVICE_ID }}" ]; then
+            echo "Triggering Render deployment..."
+            curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+              -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              -d '{"clearCache": "do_not_clear"}' || echo "⚠️ Render API trigger failed (this is OK if using webhooks)"
+          else
+            echo "ℹ️ Render API credentials not set. Render will auto-deploy via webhook if configured."
+          fi
+        continue-on-error: true
+        # Note: Render auto-deploys on git push if webhook is configured in Render dashboard
+

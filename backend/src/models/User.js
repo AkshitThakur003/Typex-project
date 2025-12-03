@@ -10,6 +10,7 @@ const preferencesSchema = new mongoose.Schema({
   // Current used fields
   caretStyle: { type: String, enum: ['solid','blink','highlight'], default: 'solid' },
   fontStyle: { type: String, enum: ['monospace','sans','typewriter'], default: 'monospace' },
+  fontSize: { type: String, enum: ['small','medium','large','xl'], default: 'medium' },
   avatarChoice: { type: String, default: 'emoji-rocket' },
   status: { type: String, default: 'Available' },
 }, { _id: false });
@@ -17,10 +18,30 @@ const preferencesSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true, minlength: 3 },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  passwordHash: { type: String, required: true },
+  passwordHash: { type: String, required: false }, // Optional for OAuth users
   avatarUrl: { type: String, default: '' }, // legacy, prefer preferences.avatarChoice
   status: { type: String, default: '' }, // top-level status still accepted; preferences.status preferred
   preferences: { type: preferencesSchema, default: () => ({}) },
+  resetToken: { type: String, default: null },
+  resetTokenExpiry: { type: Date, default: null },
+  // OAuth fields
+  oauthProvider: { type: String, enum: ['google'], default: null },
+  oauthId: { type: String, default: null }, // Provider-specific user ID
+  oauthAvatar: { type: String, default: null }, // Avatar from OAuth provider
+  // XP & Level System
+  xp: { type: Number, default: 0, min: 0 },
+  level: { type: Number, default: 1, min: 1 },
+  xpToNext: { type: Number, default: 100, min: 0 },
+  totalXp: { type: Number, default: 0, min: 0 }, // Total XP ever earned (never decreases)
+  // Race statistics
+  raceDisconnects: { type: Number, default: 0, min: 0 }, // Number of mid-race disconnects
+  lastDisconnectAt: { type: Date, default: null }, // When the last disconnect happened
 }, { timestamps: true });
+
+// Compound index for OAuth lookups
+userSchema.index({ oauthProvider: 1, oauthId: 1 }, { unique: true, sparse: true });
+// Note: username and email already have unique indexes from the schema definition (unique: true)
+// Index for XP/level queries
+userSchema.index({ level: -1, totalXp: -1 });
 
 module.exports = mongoose.model('User', userSchema);

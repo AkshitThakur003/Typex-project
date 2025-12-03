@@ -1,1 +1,119 @@
 @import "tailwindcss";
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Custom scrollbar styling */
+.custom-scrollbar {
+  scrollbar-width: thin;  /* Firefox */
+  scrollbar-color: rgb(71 85 105) rgb(30 41 59 / 0.5);  /* Firefox: thumb track */
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;  /* Chrome, Safari, Opera */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgb(30 41 59 / 0.5);  /* Track color */
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);  /* Thumb color */
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139);  /* Thumb hover color */
+}
+
+/* Blind mode opacity - ensure it's applied correctly */
+.blind-mode-active {
+  opacity: var(--blind-opacity, 1) !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px; /* Smaller base font for mobile */
+  }
+  
+  /* Prevent text size adjustment on iOS */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+  
+  .safe-area-left {
+    padding-left: max(env(safe-area-inset-left), 0px);
+  }
+  
+  .safe-area-right {
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+}
+
+/* Landscape mode optimizations */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Compact mode for landscape on small screens */
+  .landscape-compact {
+    padding: 0.5rem;
+  }
+  
+  .landscape-hide {
+    display: none;
+  }
+}
+
+/* Touch-friendly minimum sizes */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Prevent zoom on input focus (iOS) */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  font-size: 16px !important; /* Prevents iOS zoom */
+}
+
+@media (min-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: inherit;
+  }
+}
