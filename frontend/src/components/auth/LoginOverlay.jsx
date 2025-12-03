@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion as m } from 'framer-motion';
-import { api, setAuth } from '../../lib/api';
+import { api, setAuth, API_BASE } from '../../lib/api';
 import { usePreferences } from '../../settings/PreferencesContext.jsx';
 import { toast } from 'react-hot-toast';
 import { validatePassword, validateUsername, validateEmail } from '../../utils/passwordValidator.js';
@@ -124,7 +124,7 @@ export default function LoginOverlay({ onSuccess, initialMode = 'login' }) {
 
   // OAuth Section - Reusable Component
   function OAuthSection() {
-    const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+    const apiBase = API_BASE;
     return (
       <>
         <div className="pb-4">

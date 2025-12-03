@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, setAuth } from '../lib/api';
+import { api, setAuth, API_BASE } from '../lib/api';
 import { toast } from 'react-hot-toast';
 import { motion as m } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +52,7 @@ export default function Login() {
     }
   }
 
-  const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+  const apiBase = API_BASE;
 
   return (
     <div className="relative min-h-screen flex items-center justify-center py-12 px-4">

@@ -1,10 +1,14 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+// Support both VITE_API_URL and VITE_API_BASE for backward compatibility
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export const api = axios.create({
   baseURL: API_BASE,
 });
+
+// Export API_BASE for use in OAuth links and other direct URL needs
+export { API_BASE };
 
 // Ensure token is always sent from localStorage
 api.interceptors.request.use((config) => {
