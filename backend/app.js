@@ -71,16 +71,26 @@ function createApp() {
         return callback(null, true);
       }
       
-      // Check exact match in allowed origins
-      if (allowedOrigins.has(origin)) {
+      // Normalize origin (remove trailing slash, ensure lowercase for comparison)
+      const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
+      
+      // Check exact match in allowed origins (normalized)
+      const normalizedAllowedOrigins = Array.from(allowedOrigins).map(o => o.toLowerCase().replace(/\/$/, ''));
+      if (normalizedAllowedOrigins.includes(normalizedOrigin)) {
         return callback(null, true);
       }
       
       // Allow all Vercel deployments (preview and production)
-      // This matches: *.vercel.app (preview deployments)
-      // And: typex-project.vercel.app (production)
-      if (origin.endsWith('.vercel.app')) {
+      // Check if origin ends with .vercel.app (case-insensitive)
+      if (normalizedOrigin.endsWith('.vercel.app')) {
         return callback(null, true);
+      }
+      
+      // Log rejected origin for debugging (only in production to avoid spam)
+      if (NODE_ENV === 'production') {
+        console.log(`[CORS] Rejected origin: ${origin} (normalized: ${normalizedOrigin})`);
+        console.log(`[CORS] Allowed origins:`, Array.from(allowedOrigins));
+        console.log(`[CORS] NODE_ENV: ${NODE_ENV}`);
       }
       
       return callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
@@ -111,6 +121,28 @@ function createApp() {
       timestamp: new Date().toISOString(),
       origin: _req.headers.origin || 'none',
       corsConfigured: allowedOrigins.size > 0,
+    });
+  });
+
+  // CORS debug endpoint (available in all environments)
+  app.get('/api/debug/cors-check', (req, res) => {
+    const origin = req.headers.origin;
+    const normalizedOrigin = origin ? origin.toLowerCase().replace(/\/$/, '') : null;
+    const normalizedAllowedOrigins = Array.from(allowedOrigins).map(o => o.toLowerCase().replace(/\/$/, ''));
+    
+    res.json({
+      origin: origin || 'none',
+      normalizedOrigin: normalizedOrigin || 'none',
+      nodeEnv: NODE_ENV,
+      allowedOrigins: Array.from(allowedOrigins),
+      normalizedAllowedOrigins: normalizedAllowedOrigins,
+      isInAllowedOrigins: origin ? normalizedAllowedOrigins.includes(normalizedOrigin) : false,
+      endsWithVercelApp: normalizedOrigin ? normalizedOrigin.endsWith('.vercel.app') : false,
+      wouldBeAllowed: !origin || 
+                     NODE_ENV === 'test' || 
+                     NODE_ENV === 'development' || 
+                     (origin && normalizedAllowedOrigins.includes(normalizedOrigin)) ||
+                     (normalizedOrigin && normalizedOrigin.endsWith('.vercel.app')),
     });
   });
 
