@@ -29,9 +29,7 @@ router.get('/:username', async (req, res) => {
     }
 
     // Get comprehensive statistics from Leaderboard (optimized with index)
-    console.log('[Profile] Fetching stats for username:', username);
     const leaderboardCount = await Leaderboard.countDocuments({ username }).maxTimeMS(5000);
-    console.log('[Profile] Total leaderboard entries for', username, ':', leaderboardCount);
     
     const leaderboardStats = await Leaderboard.aggregate([
       { $match: { username } }, // Uses username index
@@ -53,7 +51,6 @@ router.get('/:username', async (req, res) => {
       }
     ]).option({ maxTimeMS: 10000 }); // 10 second timeout for aggregation
     
-    console.log('[Profile] Aggregated stats:', leaderboardStats);
 
     // Get win rate from GameResult (multiplayer only)
     // Also verify that Leaderboard has multiplayer entries for this user
@@ -61,7 +58,6 @@ router.get('/:username', async (req, res) => {
       username, 
       mode: 'multiplayer' 
     }).maxTimeMS(5000); // Uses compound index (mode + username)
-    console.log('[Profile] Leaderboard multiplayer entries for', username, ':', leaderboardMultiplayerCount);
     
     const multiplayerResults = await GameResult.aggregate([
       { $unwind: '$players' },
@@ -76,7 +72,6 @@ router.get('/:username', async (req, res) => {
       }
     ]).option({ maxTimeMS: 10000 }); // 10 second timeout
 
-    console.log('[Profile] GameResult multiplayer races for', username, ':', multiplayerResults.length);
 
     let wins = 0;
     let multiplayerRaces = 0;
@@ -93,7 +88,6 @@ router.get('/:username', async (req, res) => {
     });
 
     const winRate = multiplayerRaces > 0 ? (wins / multiplayerRaces) * 100 : 0;
-    console.log('[Profile] Win stats:', { wins, multiplayerRaces, winRate });
 
     // Get WPM and accuracy trends (last 30 days)
     const thirtyDaysAgo = new Date();

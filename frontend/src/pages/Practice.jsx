@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import words from "../data/words";
+import { getRandomWords } from "../data/words";
 import { getRandomQuote } from "../data/quotes.js";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { RotateCw, ChevronDown } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+import { RotateCw } from "lucide-react";
 import { usePreferences } from "../settings/PreferencesContext.jsx";
 import { playKeySound, playErrorSound } from "../lib/keyboardSounds";
 
@@ -13,12 +12,15 @@ const MODES = {
   words: [10, 25, 50],
 };
 
+const DIFFICULTIES = ['all', 'easy', 'medium', 'hard'];
+
 const Practice = () => {
   const navigate = useNavigate();
   const { preferences } = usePreferences();
 
   const [mode, setMode] = useState("time");
   const [value, setValue] = useState(30);
+  const [difficulty, setDifficulty] = useState("all");
   const [text, setText] = useState([]);
   const [currentWord, setCurrentWord] = useState(0);
   const [typed, setTyped] = useState([]);
@@ -49,32 +51,29 @@ const Practice = () => {
     typedRef.current = typed;
   }, [typed]);
 
-  // Auto-scroll to keep caret visible
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !started || text.length === 0) return;
+  // Calculate visible words for 2-3 line view (show ~25-30 words around current word)
+  const visibleWords = useMemo(() => {
+    if (text.length === 0) return [];
     
-    // Find the active word element
-    const wordElements = container.querySelectorAll(`[data-word-index]`);
-    const activeWordEl = Array.from(wordElements).find(
-      el => parseInt(el.dataset.wordIndex) === currentWord
-    );
+    const wordsToShow = 30; // ~2.5-3 lines worth of words
+    // Show more words ahead than behind for better typing flow
+    const wordsBefore = Math.floor(wordsToShow * 0.25); // 25% before current
+    const wordsAfter = Math.floor(wordsToShow * 0.75); // 75% after current
     
-    if (activeWordEl) {
-      const containerRect = container.getBoundingClientRect();
-      const wordRect = activeWordEl.getBoundingClientRect();
-      
-      // Only scroll if word is not in visible area
-      if (wordRect.top < containerRect.top + 50 || wordRect.bottom > containerRect.bottom - 50) {
-        activeWordEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }, [currentWord, started, text.length]);
+    const startIndex = Math.max(0, currentWord - wordsBefore);
+    const endIndex = Math.min(text.length, currentWord + wordsAfter);
+    
+    return text.slice(startIndex, endIndex).map((word, idx) => ({
+      word,
+      originalIndex: startIndex + idx
+    }));
+  }, [text, currentWord]);
+
+  // Note: Auto-scroll not needed for fixed 2-3 line view
+  // The visibleWords useMemo automatically updates to show words around currentWord
 
   const generateWords = (count = 50) => {
-    return Array.from({ length: count }, () => 
-      words[Math.floor(Math.random() * words.length)]
-    );
+    return getRandomWords(count, difficulty);
   };
 
   const generateQuote = () => {
@@ -110,7 +109,7 @@ const Practice = () => {
     startedAtRef.current = null;
     setLiveWpm(0);
     clearInterval(timerRef.current);
-  }, [mode, value]);
+  }, [mode, value, difficulty]);
 
   // Calculate live WPM
   const calculateLiveWpm = () => {
@@ -408,8 +407,6 @@ const Practice = () => {
   }, [finishedData, navigate]);
 
   const savedTextRef = useRef([]);
-  const [showRestartMenu, setShowRestartMenu] = useState(false);
-  const restartMenuRef = useRef(null);
 
   const restart = (keepText = false) => {
     // Save current text before restarting
@@ -452,23 +449,12 @@ const Practice = () => {
     progressRef.current = [];
     startedAtRef.current = null;
     setLiveWpm(0);
-    setShowRestartMenu(false);
     pausedTimeLeftRef.current = value;
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
     }
   };
 
-  // Close restart menu on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (restartMenuRef.current && !restartMenuRef.current.contains(event.target)) {
-        setShowRestartMenu(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -570,100 +556,127 @@ const Practice = () => {
         aria-label="Typing input"
       />
       
-      {/* Mode selectors */}
-      <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mb-3 sm:mb-4 w-full max-w-5xl">
-        <div className="flex flex-col items-center">
-          <span className="text-xs uppercase text-slate-400">Time</span>
-          <div className="flex gap-1.5 sm:gap-2 mt-1">
-            {MODES.time.map((t) => (
-              <button
-                key={t}
-                className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] min-w-[44px] ${
-                  mode === "time" && value === t
-                    ? "bg-emerald-600 text-black font-semibold"
-                    : "bg-slate-800 hover:bg-slate-700"
-                }`}
-                onClick={() => {
-                  setMode("time");
-                  setValue(t);
-                }}
-                disabled={started}
-              >
-                {t}s
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col items-center">
-          <span className="text-xs uppercase text-slate-400">Words</span>
-          <div className="flex gap-1.5 sm:gap-2 mt-1">
-            {MODES.words.map((w) => (
-              <button
-                key={w}
-                className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] min-w-[44px] ${
-                  mode === "words" && value === w
-                    ? "bg-emerald-600 text-black font-semibold"
-                    : "bg-slate-800 hover:bg-slate-700"
-                }`}
-                onClick={() => {
-                  setMode("words");
-                  setValue(w);
-                }}
-                disabled={started}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col items-center">
-          <span className="text-xs uppercase text-slate-400">Quote</span>
-          <button
-            className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] min-w-[44px] ${
-              mode === "quote"
-                ? "bg-emerald-600 text-black font-semibold"
-                : "bg-slate-800 hover:bg-slate-700"
-            }`}
-            onClick={() => {
-              setMode("quote");
-              setValue(0); // No timer for quote mode
-            }}
-            disabled={started}
-          >
-            Quote
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Header */}
-      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mb-3 sm:mb-4 w-full max-w-5xl">
-        {/* Timer */}
-        {mode === "time" && (
+      {/* Mode selectors - Hidden when test starts */}
+      {!started && (
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mb-3 sm:mb-4 w-full max-w-5xl">
           <div className="flex flex-col items-center">
             <span className="text-xs uppercase text-slate-400">Time</span>
-            <div className={`text-2xl sm:text-3xl md:text-4xl font-bold ${timeLeft <= 5 ? "text-red-500" : "text-orange-400"}`}>
+            <div className="flex gap-1.5 sm:gap-2 mt-1">
+              {MODES.time.map((t) => (
+                <button
+                  key={t}
+                  className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] min-w-[44px] ${
+                    mode === "time" && value === t
+                      ? "bg-emerald-600 text-black font-semibold"
+                      : "bg-slate-800 hover:bg-slate-700"
+                  }`}
+                  onClick={() => {
+                    setMode("time");
+                    setValue(t);
+                  }}
+                  disabled={started}
+                >
+                  {t}s
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs uppercase text-slate-400">Words</span>
+            <div className="flex gap-1.5 sm:gap-2 mt-1">
+              {MODES.words.map((w) => (
+                <button
+                  key={w}
+                  className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] min-w-[44px] ${
+                    mode === "words" && value === w
+                      ? "bg-emerald-600 text-black font-semibold"
+                      : "bg-slate-800 hover:bg-slate-700"
+                  }`}
+                  onClick={() => {
+                    setMode("words");
+                    setValue(w);
+                  }}
+                  disabled={started}
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs uppercase text-slate-400">Quote</span>
+            <button
+              className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] min-w-[44px] ${
+                mode === "quote"
+                  ? "bg-emerald-600 text-black font-semibold"
+                  : "bg-slate-800 hover:bg-slate-700"
+              }`}
+              onClick={() => {
+                setMode("quote");
+                setValue(0); // No timer for quote mode
+              }}
+              disabled={started}
+            >
+              Quote
+            </button>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-xs uppercase text-slate-400">Difficulty</span>
+            <div className="flex gap-1.5 sm:gap-2 mt-1">
+              {DIFFICULTIES.map((diff) => (
+                <button
+                  key={diff}
+                  className={`px-3 sm:px-4 py-2 text-sm sm:text-base rounded transition touch-target min-h-[44px] capitalize ${
+                    difficulty === diff
+                      ? "bg-emerald-600 text-black font-semibold"
+                      : "bg-slate-800 hover:bg-slate-700"
+                  }`}
+                  onClick={() => {
+                    setDifficulty(diff);
+                  }}
+                  disabled={started}
+                >
+                  {diff === 'all' ? 'All' : diff}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stats Header - Enhanced when test starts */}
+      <div className={`flex flex-wrap items-center justify-center gap-4 sm:gap-8 mb-4 sm:mb-6 w-full max-w-5xl ${started ? 'mt-4 sm:mt-6' : ''}`}>
+        {/* Timer - Larger when started */}
+        {mode === "time" && (
+          <div className="flex flex-col items-center">
+            <span className={`${started ? 'text-sm sm:text-base' : 'text-xs'} uppercase text-slate-400 mb-1`}>Time</span>
+            <div className={`${started ? 'text-5xl sm:text-6xl md:text-7xl' : 'text-2xl sm:text-3xl md:text-4xl'} font-bold ${timeLeft <= 5 ? "text-red-500" : "text-orange-400"}`}>
               {timeLeft}s
             </div>
           </div>
         )}
         
-        {/* Word Counter */}
+        {/* Word Counter - Larger when started */}
         <div className="flex flex-col items-center">
-          <span className="text-xs uppercase text-slate-400">Words</span>
-          <div className="text-lg sm:text-xl md:text-2xl font-semibold text-white">
+          <span className={`${started ? 'text-sm sm:text-base' : 'text-xs'} uppercase text-slate-400 mb-1`}>Words</span>
+          <div className={`${started ? 'text-4xl sm:text-5xl md:text-6xl' : 'text-lg sm:text-xl md:text-2xl'} font-semibold text-white`}>
             {mode === "words" ? (
               <span className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
                 <span>{wordsCompleted} / {value}</span>
-                <span className="text-xs sm:text-sm text-slate-400 font-normal">
-                  ({Math.round((wordsCompleted / value) * 100)}%)
-                </span>
+                {!started && (
+                  <span className="text-xs sm:text-sm text-slate-400 font-normal">
+                    ({Math.round((wordsCompleted / value) * 100)}%)
+                  </span>
+                )}
               </span>
             ) : mode === "quote" ? (
               <span className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
                 <span>{wordsCompleted} / {text.length}</span>
-                <span className="text-xs sm:text-sm text-slate-400 font-normal">
-                  ({text.length > 0 ? Math.round((wordsCompleted / text.length) * 100) : 0}%)
-                </span>
+                {!started && (
+                  <span className="text-xs sm:text-sm text-slate-400 font-normal">
+                    ({text.length > 0 ? Math.round((wordsCompleted / text.length) * 100) : 0}%)
+                  </span>
+                )}
               </span>
             ) : (
               wordsCompleted
@@ -671,17 +684,17 @@ const Practice = () => {
           </div>
         </div>
 
-        {/* Live WPM */}
+        {/* Live WPM - Larger when started */}
         {started && !isPaused && (
           <div className="flex flex-col items-center">
-            <span className="text-xs uppercase text-slate-400">WPM</span>
-            <div className="text-lg sm:text-xl md:text-2xl font-semibold text-emerald-400">
+            <span className="text-sm sm:text-base uppercase text-slate-400 mb-1">WPM</span>
+            <div className="text-4xl sm:text-5xl md:text-6xl font-semibold text-emerald-400">
               {liveWpm}
             </div>
           </div>
         )}
 
-        {/* Pause Button */}
+        {/* Pause Button - Larger when started */}
         {started && (
           <button
             onClick={() => setIsPaused((prev) => {
@@ -690,7 +703,7 @@ const Practice = () => {
               }
               return !prev;
             })}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base rounded-lg bg-slate-800 hover:bg-slate-700 transition text-white font-semibold"
+            className={`${started ? 'px-4 sm:px-6 py-2.5 sm:py-3 text-base sm:text-lg' : 'px-3 sm:px-4 py-1.5 sm:py-2 text-sm sm:text-base'} rounded-lg bg-slate-800 hover:bg-slate-700 transition text-white font-semibold`}
             aria-label={isPaused ? "Resume" : "Pause"}
           >
             {isPaused ? "▶ Resume" : "⏸ Pause"}
@@ -735,139 +748,103 @@ const Practice = () => {
         </motion.div>
       )}
 
-      {/* Typing area */}
+      {/* Typing area - 2-3 line focused view */}
       <div
         ref={containerRef}
-        className={`w-full max-w-5xl ${fontSizeClass} leading-relaxed ${fontClass} flex flex-wrap gap-1.5 sm:gap-2 
-                   md:p-0 md:bg-transparent md:rounded-none 
-                   bg-slate-900 p-3 sm:p-4 rounded-lg
-                   max-h-[40vh] sm:max-h-[50vh] overflow-auto mx-2 sm:mx-0`}
+        className={`w-full max-w-5xl ${fontSizeClass} leading-relaxed ${fontClass}
+                   mx-2 sm:mx-0
+                   flex flex-col justify-center
+                   min-h-[140px] sm:min-h-[160px] max-h-[180px] sm:max-h-[200px]
+                   overflow-hidden`}
       >
-        {text.map((word, wi) => {
-          const isActive = wi === currentWord;
-          const isPast = wi < currentWord;
-          const isFuture = wi > currentWord;
-          
-          return (
-            <div key={wi} data-word-index={wi} className="flex gap-[2px]">
-              {word.split("").map((char, ci) => {
-                const typedWord = typed[wi];
-                const typedChar = typedWord?.[ci];
-                const isCaret = caret.word === wi && caret.char === ci;
-                
-                // Determine color based on character comparison
-                let color = "text-slate-500"; // default faded (not typed yet)
-                
-                if (isPast && typedWord) {
-                  // Past words: check if fully correct
-                  const targetWord = text[wi] || "";
-                  color = typedWord === targetWord ? "text-slate-400" : "text-red-400";
-                } else if (typedChar !== undefined) {
-                  // Current word: compare characters
-                  color = typedChar === char ? "text-white" : "text-red-500";
-                } else if (isActive) {
-                  // Current word, not yet typed
-                  color = "text-slate-500";
-                }
-                
-                return (
-                  <span key={ci} className={`${color} relative`}>
-                    {char}
-                    {isCaret && (
-                      <motion.span
-                        ref={caretRef}
-                        className="absolute left-0 -bottom-0.5 sm:-bottom-1 w-full h-[1.5px] sm:h-[2px] bg-emerald-500 pointer-events-none"
-                        animate={
-                          caretStylePref === "blink"
-                            ? { opacity: [0, 1, 0] }
-                            : caretStylePref === "highlight"
-                            ? { opacity: 1, backgroundColor: ["#10b981", "#34d399", "#10b981"] }
-                            : { opacity: [0, 1, 0] }
-                        }
-                        transition={
-                          caretStylePref === "highlight"
-                            ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-                            : { duration: 1, repeat: Infinity }
-                        }
-                      />
-                    )}
-                  </span>
-                );
-              })}
-              {isActive && caret.char === word.length && (
-                <motion.span
-                  ref={caretRef}
-                  className="inline-block w-[1.5px] sm:w-[2px] h-5 sm:h-6 bg-emerald-500 align-middle"
-                  animate={
-                    caretStylePref === "blink"
-                      ? { opacity: [0, 1, 0] }
-                      : caretStylePref === "highlight"
-                      ? { opacity: 1, backgroundColor: ["#10b981", "#34d399", "#10b981"] }
-                      : { opacity: [0, 1, 0] }
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center items-center">
+          {visibleWords.map(({ word, originalIndex: wi }) => {
+            const isActive = wi === currentWord;
+            const isPast = wi < currentWord;
+            const isFuture = wi > currentWord;
+            
+            return (
+              <div key={wi} data-word-index={wi} className="flex gap-[2px]">
+                {word.split("").map((char, ci) => {
+                  const typedWord = typed[wi];
+                  const typedChar = typedWord?.[ci];
+                  const isCaret = caret.word === wi && caret.char === ci;
+                  
+                  // Determine color based on character comparison
+                  let color = "text-slate-500"; // default faded (not typed yet)
+                  
+                  if (isPast && typedWord) {
+                    // Past words: check if fully correct
+                    const targetWord = text[wi] || "";
+                    color = typedWord === targetWord ? "text-slate-400" : "text-red-400";
+                  } else if (typedChar !== undefined) {
+                    // Current word: compare characters
+                    color = typedChar === char ? "text-white" : "text-red-500";
+                  } else if (isActive) {
+                    // Current word, not yet typed
+                    color = "text-slate-500";
                   }
-                  transition={
-                    caretStylePref === "highlight"
-                      ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-                      : { duration: 1, repeat: Infinity }
-                  }
-                />
-              )}
-            </div>
-          );
-        })}
+                  
+                  return (
+                    <span key={ci} className={`${color} relative`}>
+                      {char}
+                      {isCaret && (
+                        <motion.span
+                          ref={caretRef}
+                          className="absolute left-0 -bottom-0.5 sm:-bottom-1 w-full h-[1.5px] sm:h-[2px] bg-emerald-500 pointer-events-none"
+                          animate={
+                            caretStylePref === "blink"
+                              ? { opacity: [0, 1, 0] }
+                              : caretStylePref === "highlight"
+                              ? { opacity: 1, backgroundColor: ["#10b981", "#34d399", "#10b981"] }
+                              : { opacity: [0, 1, 0] }
+                          }
+                          transition={
+                            caretStylePref === "highlight"
+                              ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+                              : { duration: 1, repeat: Infinity }
+                          }
+                        />
+                      )}
+                    </span>
+                  );
+                })}
+                {isActive && caret.char === word.length && (
+                  <motion.span
+                    ref={caretRef}
+                    className="inline-block w-[1.5px] sm:w-[2px] h-5 sm:h-6 bg-emerald-500 align-middle"
+                    animate={
+                      caretStylePref === "blink"
+                        ? { opacity: [0, 1, 0] }
+                        : caretStylePref === "highlight"
+                        ? { opacity: 1, backgroundColor: ["#10b981", "#34d399", "#10b981"] }
+                        : { opacity: [0, 1, 0] }
+                    }
+                    transition={
+                      caretStylePref === "highlight"
+                        ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+                        : { duration: 1, repeat: Infinity }
+                    }
+                  />
+                )}
+                <span className="text-transparent select-none"> </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Restart Button with Dropdown */}
-      <div className="mt-4 sm:mt-6 relative" ref={restartMenuRef}>
+      {/* Restart Button */}
+      <div className="mt-4 sm:mt-6 flex justify-center">
         <button
-          onClick={() => {
-            if (showRestartMenu) {
-              restart(true); // Quick restart if menu is open
-            } else {
-              setShowRestartMenu(true);
-            }
-          }}
-          className="px-4 sm:px-6 py-2 text-sm sm:text-base rounded-lg bg-emerald-600 text-black font-semibold hover:bg-emerald-500 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+          onClick={() => restart(false)}
+          className="px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg bg-emerald-600 text-black font-semibold hover:bg-emerald-500 active:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 min-w-[140px] sm:min-w-[160px]"
           aria-label="Restart test"
+          type="button"
         >
-          <RotateCw className="w-4 h-5 sm:w-5" aria-hidden="true" />
+          <RotateCw className="w-4 h-5 sm:w-5 flex-shrink-0" aria-hidden="true" />
           <span>Restart</span>
-          <ChevronDown className={`w-3 h-4 sm:w-4 transition-transform ${showRestartMenu ? 'rotate-180' : ''}`} />
         </button>
-
-        {/* Dropdown Menu */}
-        <AnimatePresence>
-          {showRestartMenu && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.15 }}
-              className="absolute top-full mt-2 right-0 sm:right-auto left-0 sm:left-auto bg-slate-900 border border-slate-800 rounded-lg shadow-xl overflow-hidden z-10 min-w-[200px] sm:min-w-[240px]"
-            >
-              <button
-                onClick={() => restart(true)}
-                className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-white hover:bg-slate-800 transition flex items-center gap-2"
-              >
-                <RotateCw className="w-3 h-4 sm:w-4 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="font-semibold text-xs sm:text-sm">Restart (Same Text)</div>
-                  <div className="text-xs text-slate-400">Tab</div>
-                </div>
-              </button>
-              <button
-                onClick={() => restart(false)}
-                className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-white hover:bg-slate-800 transition flex items-center gap-2 border-t border-slate-800"
-              >
-                <RotateCw className="w-3 h-4 sm:w-4 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="font-semibold text-xs sm:text-sm">New Test (New Text)</div>
-                  <div className="text-xs text-slate-400">Shift+Tab</div>
-                </div>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Keyboard Shortcuts Hint - Hidden on mobile */}

@@ -134,18 +134,43 @@ function shuffle(array) {
   return a;
 }
 
+// Filter words by difficulty based on length
+// Easy: 1-4 letters, Medium: 4-7 letters, Hard: 7+ letters
+export function getWordsByDifficulty(difficulty = 'all') {
+  if (difficulty === 'all') return WORDS;
+  
+  return WORDS.filter(word => {
+    const len = word.length;
+    switch (difficulty) {
+      case 'easy':
+        return len >= 1 && len <= 4;
+      case 'medium':
+        return len >= 4 && len <= 7;
+      case 'hard':
+        return len >= 7;
+      default:
+        return true;
+    }
+  });
+}
+
 // getRandomWords ensures no repeats up to WORDS.length
-export function getRandomWords(count) {
-  if (count > WORDS.length) {
+export function getRandomWords(count, difficulty = 'all') {
+  const filteredWords = getWordsByDifficulty(difficulty);
+  
+  // If no words match the difficulty, fall back to all words
+  const wordPool = filteredWords.length > 0 ? filteredWords : WORDS;
+  
+  if (count > wordPool.length) {
     // If asking more than base list, we allow repeats after a full pass
-    const times = Math.floor(count / WORDS.length);
-    const remainder = count % WORDS.length;
+    const times = Math.floor(count / wordPool.length);
+    const remainder = count % wordPool.length;
     let out = [];
-    for (let t = 0; t < times; t++) out = out.concat(shuffle(WORDS));
-    out = out.concat(shuffle(WORDS).slice(0, remainder));
+    for (let t = 0; t < times; t++) out = out.concat(shuffle(wordPool));
+    out = out.concat(shuffle(wordPool).slice(0, remainder));
     return out;
   }
-  return shuffle(WORDS).slice(0, count);
+  return shuffle(wordPool).slice(0, count);
 }
 
 export default WORDS;

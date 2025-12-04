@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePreferences } from '../settings/PreferencesContext.jsx';
-import { setAuth } from '../lib/api';
+import { api } from '../lib/api';
 import { toast } from 'react-hot-toast';
 
 export default function OAuthCallback() {
@@ -14,7 +14,6 @@ export default function OAuthCallback() {
     if (hasRun.current) return;
     hasRun.current = true;
 
-    const token = searchParams.get('token');
     const username = searchParams.get('username');
     const error = searchParams.get('error');
 
@@ -24,24 +23,27 @@ export default function OAuthCallback() {
       return;
     }
 
-    if (token && username) {
-      // Store token and username
-      setAuth(token);
-      localStorage.setItem('token', token);
-      localStorage.setItem('username', username);
-      
-      // Update user state
-      setUserState({ username, token });
-      
-      // Fetch full user profile
-      refreshUser();
-      
-      toast.success(`Welcome, ${username}!`);
-      navigate('/multiplayer', { replace: true });
-    } else {
-      toast.error('Authentication failed. Missing token.');
-      navigate('/login', { replace: true });
-    }
+    // Tokens are now in httpOnly cookies, so we just need to verify auth and get user info
+    // Fetch user profile to verify authentication worked
+    api.get('/api/auth/me')
+      .then(({ data }) => {
+        // Store username for display
+        if (data.username) localStorage.setItem('username', data.username);
+        
+        // Update user state
+        setUserState({ id: data._id, username: data.username, email: data.email });
+        
+        // Fetch full user profile
+        refreshUser();
+        
+        toast.success(`Welcome, ${data.username}!`);
+        navigate('/multiplayer', { replace: true });
+      })
+      .catch((err) => {
+        console.error('[OAuth Callback] Failed to fetch user:', err);
+        toast.error('Authentication failed. Please try again.');
+        navigate('/login', { replace: true });
+      });
   }, [searchParams, navigate, setUserState, refreshUser]);
 
   return (

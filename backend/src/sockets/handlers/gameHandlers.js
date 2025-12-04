@@ -71,7 +71,6 @@ async function endGame(room, reason='time') {
 
   // persist
   try {
-    console.log('[Game End] Saving results for room:', room.code, 'Players:', results.length);
     
     // Save to GameResult collection
     const gameResult = await GameResult.create({
@@ -82,7 +81,6 @@ async function endGame(room, reason='time') {
       endedAt: new Date(),
       players: results.map(r => ({ username: r.name, wpm: r.wpm, accuracy: r.accuracy, finished: r.finished, finishTime: r.finishTime || null })),
     });
-    console.log('[Game End] GameResult saved:', gameResult._id);
     
     // Also persist to Leaderboard per player with mode 'multiplayer'
     const docs = results
@@ -98,7 +96,6 @@ async function endGame(room, reason='time') {
     
     if (docs.length > 0) {
       const saved = await Leaderboard.insertMany(docs, { ordered: false });
-      console.log('[Game End] Leaderboard entries saved:', saved.length, 'for players:', docs.map(d => d.username));
     } else {
       console.warn('[Game End] No valid leaderboard entries to save (all spectators or invalid data)');
     }
@@ -124,7 +121,6 @@ async function endGame(room, reason='time') {
             ioRef,
             playerSocket?.id
           );
-          console.log(`[Game End] XP awarded to player ${player.name} (rank ${rank})`);
         } catch (xpErr) {
           console.error(`[Game End] Failed to award XP to ${player.name}:`, xpErr);
         }
@@ -146,7 +142,6 @@ async function endGame(room, reason='time') {
     const rooms = getRooms();
     const stillExists = rooms.get(room.code);
     if (stillExists && stillExists.status === 'results') {
-      console.log(`[Game End] Auto-deleting room ${room.code} after 5 minutes`);
       deleteRoom(room.code);
       ioRef.to(room.code).emit('room:closed');
     }
@@ -171,7 +166,6 @@ function registerGameHandlers(socket, io) {
     
     io.to(code).emit('room:state', serializeRoom(room));
     
-    console.log('[Game Start] Starting race:', code, 'Text length:', room.text?.length, 'Modifiers:', room.modifiers);
     io.to(code).emit('game:started', { 
       roomCode: code, 
       text: room.text, 
@@ -199,8 +193,6 @@ function registerGameHandlers(socket, io) {
     if (socket.id !== room.hostId) return cb && cb({ error: 'Only host can start rematch' });
     if (room.status !== 'results') return cb && cb({ error: 'Can only rematch after game ends' });
     
-    console.log('[Rematch] Starting rematch for room:', code);
-    
     let newText;
     if (room.isCustomText && room.text) {
       newText = room.text;
@@ -227,7 +219,6 @@ function registerGameHandlers(socket, io) {
     room.startedAt = now();
     room.endsAt = isZenMode ? room.startedAt + (365 * 24 * 60 * 60 * 1000) : room.startedAt + room.timeLimit * 1000;
     
-    console.log('[Rematch] New text generated, length:', newText.length, 'Modifiers:', room.modifiers);
     
     io.to(code).emit('room:state', serializeRoom(room));
     io.to(code).emit('game:started', { 
@@ -302,10 +293,7 @@ function registerGameHandlers(socket, io) {
       
       const limit = room.suddenDeathLimit || 1;
       
-      console.log(`[Sudden Death] Player: ${player.name}, Mistakes: ${mistakeCount}, Limit: ${limit}`);
-      
       if (mistakeCount >= limit) {
-        console.log(`[Sudden Death] Eliminating player ${player.name}`);
         const msg = { name: 'System', text: `${player.name} was eliminated (${mistakeCount} mistake${mistakeCount > 1 ? 's' : ''})`, ts: Date.now(), system: true };
         room.chat.push(msg);
         if (room.chat.length > 200) room.chat.shift();

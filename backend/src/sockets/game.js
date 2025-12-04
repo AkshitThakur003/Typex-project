@@ -27,7 +27,25 @@ function registerGameSocket(io) {
   // Socket auth middleware with improved security
   io.use((socket, next) => {
     try {
-      const token = socket.handshake.auth?.token;
+      // Try to get token from cookie first (preferred method)
+      let token = socket.handshake.headers?.cookie
+        ? socket.handshake.headers.cookie
+            .split(';')
+            .find(c => c.trim().startsWith('accessToken='))
+            ?.split('=')[1]
+        : null;
+      
+      // Fall back to auth object (for backward compatibility)
+      if (!token) {
+        token = socket.handshake.auth?.token;
+      }
+      
+      // Also check Authorization header
+      if (!token && socket.handshake.headers?.authorization) {
+        const header = socket.handshake.headers.authorization;
+        token = header.startsWith('Bearer ') ? header.slice(7) : null;
+      }
+      
       if (!token) return next(new Error('unauthorized'));
       
       const secret = getJwtSecret();
@@ -76,7 +94,6 @@ function registerGameSocket(io) {
               $inc: { raceDisconnects: 1 },
               $set: { lastDisconnectAt: new Date() }
             });
-            console.log(`[Disconnect Penalty] User ${socket.user.username} disconnected mid-race from room ${code}`);
             
             // Notify room about the disconnect
             const msg = { 

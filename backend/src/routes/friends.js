@@ -73,7 +73,6 @@ router.post('/search', async (req, res) => {
     const searchTerm = query.trim();
     const searchRegex = new RegExp(searchTerm, 'i');
     
-    console.log('[Friends Search] Query:', searchTerm, 'User ID:', req.user.id, 'Type:', typeof req.user.id);
     
     // Convert req.user.id to ObjectId for proper MongoDB comparison
     const currentUserId = mongoose.Types.ObjectId.isValid(req.user.id) 
@@ -87,7 +86,6 @@ router.post('/search', async (req, res) => {
       .select('username email avatarChoice avatarUrl preferences oauthAvatar')
       .limit(20);
     
-    console.log('[Friends Search] Found users:', users.length, users.map(u => ({ username: u.username, id: u._id })));
 
     // Check friendship status for each user
     const userIds = users.map(u => u._id);

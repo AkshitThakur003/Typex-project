@@ -11,6 +11,13 @@ function getOnlineUsers() {
 function registerFriendHandlers(socket, io) {
   // Track user online status on connect
   if (socket.user?.id) {
+    // Validate ObjectId before querying
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(socket.user.id)) {
+      // Invalid ObjectId - skip friend notification (probably a test or invalid user)
+      return;
+    }
+    
     if (!onlineUsers.has(socket.user.id)) {
       onlineUsers.set(socket.user.id, new Set());
     }

@@ -49,11 +49,8 @@ router.post('/add-xp', async (req, res) => {
     const userId = req.user.id;
     const { mode, wpm, accuracy, words, rank, gameId } = req.body;
 
-    console.log('[XP] Add XP request:', { userId, mode, wpm, accuracy, words, rank });
-
     // Validate required fields
     if (!mode || typeof wpm !== 'number' || typeof accuracy !== 'number') {
-      console.error('[XP] Validation failed:', { mode, wpm, accuracy, wpmType: typeof wpm, accuracyType: typeof accuracy });
       return res.status(400).json({ error: 'mode, wpm, and accuracy are required' });
     }
 
@@ -92,11 +89,8 @@ router.post('/add-xp', async (req, res) => {
       // Fetch current user state
       const user = await User.findById(userId).select('xp level xpToNext totalXp').lean();
       if (!user) {
-        console.error('[XP] User not found:', userId);
         return res.status(404).json({ error: 'User not found' });
       }
-
-      console.log('[XP] Current user state:', { xp: user.xp, level: user.level, xpToNext: user.xpToNext, totalXp: user.totalXp });
 
       // Handle missing XP fields (for existing users who haven't been migrated)
       const currentXp = (user.xp !== undefined && user.xp !== null) ? Number(user.xp) : 0;
@@ -107,12 +101,8 @@ router.post('/add-xp', async (req, res) => {
       const oldLevel = currentLevel;
       const oldXp = currentXp;
 
-      console.log('[XP] Processed values:', { currentXp, currentLevel, currentXpToNext, currentTotalXp, xpGained });
-
       // Process level-up
       const result = processLevelUp(currentXp, currentLevel, xpGained);
-      
-      console.log('[XP] Level-up result:', result);
 
       // Atomic update using findByIdAndUpdate with computed values
       const updateResult = await User.findByIdAndUpdate(
@@ -158,9 +148,8 @@ router.post('/add-xp', async (req, res) => {
     // If we exhausted attempts, return error
     return res.status(500).json({ error: 'Failed to update XP after multiple attempts' });
   } catch (err) {
-    console.error('[XP] Add XP error:', err);
-    console.error('[XP] Error stack:', err.stack);
-    res.status(500).json({ error: 'Failed to add XP', details: err.message });
+    console.error('[XP] Add XP error:', err.message);
+    res.status(500).json({ error: 'Failed to add XP' });
   }
 });
 
@@ -203,8 +192,8 @@ router.get('/me', async (req, res) => {
       progress: Math.min(100, Math.max(0, progress)),
     });
   } catch (err) {
-    console.error('[XP] Get XP error:', err);
-    res.status(500).json({ error: 'Failed to get XP', details: err.message });
+    console.error('[XP] Get XP error:', err.message);
+    res.status(500).json({ error: 'Failed to get XP' });
   }
 });
 

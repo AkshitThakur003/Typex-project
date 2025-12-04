@@ -70,10 +70,9 @@ export default function Register() {
 
     try {
       const { data } = await api.post('/api/auth/signup', { email, username, password });
-      setAuth(data.token);
-      localStorage.setItem('token', data.token);
+      // Tokens are now in httpOnly cookies, no need to store in localStorage
       if (data?.user?.username) localStorage.setItem('username', data.user.username);
-      toast.success(`Registered as ${data.user.username}`);
+      toast.success(`Registered as ${data.user.username}. ${data.message || 'Please verify your email.'}`);
       // Update user immediately and fetch profile
       setUserState({ id: data.user.id, username: data.user.username, email: data.user.email });
       refreshUser();

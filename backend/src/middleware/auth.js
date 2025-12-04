@@ -15,9 +15,28 @@ const getJwtSecret = () => {
 };
 
 module.exports = function auth(req, res, next) {
-  const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  // Try to get token from cookie first (preferred method)
+  let token = req.cookies?.accessToken;
+  
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development' && req.path === '/api/auth/me') {
+    console.log('[Auth Middleware] Cookies received:', Object.keys(req.cookies || {}));
+    console.log('[Auth Middleware] Has accessToken cookie:', !!req.cookies?.accessToken);
+  }
+  
+  // Fall back to Authorization header for backward compatibility
+  if (!token) {
+    const header = req.headers.authorization || '';
+    token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  }
+  
+  if (!token) {
+    // In development, log why auth failed
+    if (process.env.NODE_ENV === 'development' && req.path === '/api/auth/me') {
+      console.log('[Auth Middleware] No token found - user not authenticated (this is normal if not logged in)');
+    }
+    return res.status(401).json({ error: 'No token provided' });
+  }
   
   const secret = getJwtSecret();
   if (!secret) {

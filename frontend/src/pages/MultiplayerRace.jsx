@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
+import { usePreferences } from '../settings/PreferencesContext.jsx';
 import Race from '../components/multiplayer/Race.jsx';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
@@ -11,6 +12,7 @@ export default function MultiplayerRace() {
   const { roomCode } = useParams();
   const nav = useNavigate();
   const { state } = useLocation();
+  const { isAuthenticated } = usePreferences();
   const [socket, setSocket] = useState(null);
   const [input, setInput] = useState('');
   const keystrokesRef = useRef([]);
@@ -22,12 +24,13 @@ export default function MultiplayerRace() {
   const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!isAuthenticated) return;
     const url = WS_BASE; // connect directly to backend to avoid proxy WS resets
     const s = io(url, {
       path: '/socket.io',
-      auth: { token },
+      // Tokens are now in httpOnly cookies, which are sent automatically
+      // No need to pass token in auth object - backend will read from cookies
+      withCredentials: true, // Send cookies with socket.io requests
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
@@ -58,7 +61,7 @@ export default function MultiplayerRace() {
       nav('/', { state: { kicked: true, reason: reason || 'You have been removed due to suspicious activity.' } });
     });
   return () => s.disconnect();
-  }, [roomCode, nav]);
+  }, [roomCode, nav, isAuthenticated]);
 
   const progress = useMemo(() => {
     if (!room?.text) return 0;

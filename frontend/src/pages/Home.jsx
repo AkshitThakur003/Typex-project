@@ -11,18 +11,14 @@ const MockTypingPreview = lazy(() => import("../components/home/MockTypingPrevie
 const RaceRoomPreview = lazy(() => import("../components/home/RaceRoomPreview"));
 const Testimonials = lazy(() => import("../components/home/Testimonials"));
 
-// Lazy load GSAP only when needed (reduces initial bundle)
-let gsap, ScrollTrigger;
-const loadGsap = async () => {
-  if (!gsap) {
-    const gsapModule = await import("gsap");
-    const scrollTriggerModule = await import("gsap/ScrollTrigger");
-    gsap = gsapModule.gsap;
-    ScrollTrigger = scrollTriggerModule.ScrollTrigger;
-    gsap.registerPlugin(ScrollTrigger);
-  }
-  return { gsap, ScrollTrigger };
-};
+// Import GSAP and ScrollTrigger (static import for consistency with other components)
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+// Register ScrollTrigger if available
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 // Loading fallback for lazy components
 const SectionSkeleton = () => (
@@ -36,7 +32,6 @@ export default function Home() {
   const parallaxRef = useRef(null);
   const sectionsRef = useRef([]);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [gsapLoaded, setGsapLoaded] = useState(false);
 
   // Check for reduced motion preference (accessibility)
   useEffect(() => {
@@ -48,70 +43,61 @@ export default function Home() {
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  // Load GSAP only if user doesn't prefer reduced motion
+  // Setup GSAP animations only if user doesn't prefer reduced motion
   useEffect(() => {
-    if (typeof window === 'undefined' || prefersReducedMotion) return;
+    if (typeof window === 'undefined' || prefersReducedMotion || !ScrollTrigger) return;
+    if (!parallaxRef.current || !heroRef.current) return;
 
-    let cleanup = () => {};
-    
-    loadGsap().then(({ gsap: g, ScrollTrigger: ST }) => {
-      if (!parallaxRef.current || !heroRef.current) return;
-      
-      setGsapLoaded(true);
+    // Simplified parallax effect (less CPU intensive)
+    gsap.to(parallaxRef.current, {
+      y: -40,
+      opacity: 0.85,
+      scrollTrigger: {
+        trigger: heroRef.current,
+        start: "top top",
+        end: "bottom top",
+        scrub: 2, // Higher value = smoother but less responsive
+      }
+    });
 
-      // Simplified parallax effect (less CPU intensive)
-      g.to(parallaxRef.current, {
-        y: -40,
-        opacity: 0.85,
+    // Simplified background parallax
+    const bgElements = heroRef.current.querySelectorAll('.bg-parallax');
+    bgElements.forEach((el, index) => {
+      gsap.to(el, {
+        y: -60 * (index + 1),
         scrollTrigger: {
           trigger: heroRef.current,
           start: "top top",
           end: "bottom top",
-          scrub: 2, // Higher value = smoother but less responsive
+          scrub: 2,
         }
       });
-
-      // Simplified background parallax
-      const bgElements = heroRef.current.querySelectorAll('.bg-parallax');
-      bgElements.forEach((el, index) => {
-        g.to(el, {
-          y: -60 * (index + 1),
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: "top top",
-            end: "bottom top",
-            scrub: 2,
-          }
-        });
-      });
-
-      // Simplified section animations (reduced complexity)
-      const sections = document.querySelectorAll('section');
-      sections.forEach((section, index) => {
-        if (index === 0) return;
-
-        g.fromTo(
-          section,
-          { opacity: 0, y: 40 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.8,
-            scrollTrigger: {
-              trigger: section,
-              start: "top 85%",
-              toggleActions: "play none none none" // Don't reverse for better performance
-            }
-          }
-        );
-      });
-
-      cleanup = () => {
-        ST.getAll().forEach(trigger => trigger.kill());
-      };
     });
 
-    return cleanup;
+    // Simplified section animations (reduced complexity)
+    const sections = document.querySelectorAll('section');
+    sections.forEach((section, index) => {
+      if (index === 0) return;
+
+      gsap.fromTo(
+        section,
+        { opacity: 0, y: 40 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          scrollTrigger: {
+            trigger: section,
+            start: "top 85%",
+            toggleActions: "play none none none" // Don't reverse for better performance
+          }
+        }
+      );
+    });
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    };
   }, [prefersReducedMotion]);
 
   const features = [

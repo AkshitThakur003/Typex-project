@@ -57,3 +57,37 @@ Thumbs.db
 
 # Documentation files (keep local only)
 V2_ROADMAP.md
+FUTURE_UPDATES.md
+TESTING.md
+
+# Test files - exclude all test files and test directories
+**/__tests__/
+**/test/
+**/tests/
+**/*.test.js
+**/*.test.jsx
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.js
+**/*.spec.jsx
+**/*.spec.ts
+**/*.spec.tsx
+*.test.*
+*.spec.*
+
+# Test configuration files
+**/jest.config.js
+**/jest.setup.js
+**/vitest.config.js
+**/vitest.setup.js
+
+# Scripts - exclude utility/fix scripts
+**/scripts/fix-*.js
+**/scripts/*-fix.js
+**/scripts/test-*.js
+**/scripts/*-test.js
+**/scripts/migrate-*.js
+**/scripts/*-migrate.js
+**/scripts/seed-*.js
+**/scripts/*-seed.js
+**/load-tests/

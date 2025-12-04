@@ -105,8 +105,7 @@ export default function LoginOverlay({ onSuccess, initialMode = 'login' }) {
   }
 
   function afterAuth(data, toastMsg) {
-    setAuth(data.token);
-    localStorage.setItem('token', data.token);
+    // Tokens are now in httpOnly cookies, no need to store in localStorage
     if (data?.user?.username) localStorage.setItem('username', data.user.username);
     setUserState({ id: data.user.id, username: data.user.username, email: data.user.email });
     refreshUser();

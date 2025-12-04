@@ -32,7 +32,6 @@ function registerRoomHandlers(socket, io) {
       });
       socket.join(room.code);
       const textMode = customText ? 'custom' : (room.wordCount ? `wordCount:${room.wordCount}` : `difficulty:${difficulty}`);
-      console.log('[Room Create] Room created:', room.code, 'Modifiers:', modifiers, 'Text mode:', textMode, 'Text length:', room.text?.length, 'Team mode:', teamMode);
       cb && cb({ ...serializeRoom(room) });
       io.to(room.code).emit('room:state', serializeRoom(room));
     } catch (err) {
@@ -258,7 +257,6 @@ function registerRoomHandlers(socket, io) {
         teamMode: room.teamMode || false,
       });
       
-      console.log(`[Room Invite] ${socket.user?.username} invited ${friendUsername} to room ${code}`);
       cb && cb({ ok: true });
     } catch (err) {
       console.error('[Room Invite] Error:', err);

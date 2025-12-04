@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const { validatePassword } = require('../utils/passwordValidator');
+const { sendPasswordResetEmail } = require('../utils/emailService');
 
 /**
  * Request password reset token
@@ -29,31 +30,35 @@ async function requestReset(req, res) {
       
       // Store reset token and expiry (15 minutes from now)
       user.resetToken = token;
-      user.resetTokenExpiry = Date.now() + (15 * 60 * 1000); // 15 minutes
+      user.resetTokenExpiry = new Date(Date.now() + (15 * 60 * 1000)); // 15 minutes
       await user.save();
       
-      // SECURITY: In production, send token via email instead of returning it
-      // For development/demo purposes, we log it and return a masked version
+      // Send password reset email
+      const emailResult = await sendPasswordResetEmail(user.email, user.username, token);
+      
       const NODE_ENV = process.env.NODE_ENV || 'development';
       
-      if (NODE_ENV === 'production') {
-        // TODO: Integrate email service (SendGrid, Nodemailer, etc.)
-        // await sendPasswordResetEmail(user.email, token);
-        console.log('[Password Reset] Token generated for:', normalizedEmail);
-        return res.json({ 
-          success: true, 
-          message: 'If an account exists with this email, a password reset link has been sent.'
-        });
-      } else {
-        // Development only: return token for testing
-        console.log('[Password Reset] DEV MODE - Token:', token);
-        return res.json({ 
-          success: true, 
-          message: 'Reset token generated (dev mode)',
-          token, // Only in development
-          expiresIn: '15 minutes'
-        });
+      // Always return success message (security: don't reveal if email exists)
+      const response = {
+        success: true,
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      };
+      
+      // In development, include token in response if email sending failed or SMTP not configured
+      if (NODE_ENV === 'development' && !emailResult.sent) {
+        response.token = token;
+        response.emailNote = 'Email service not configured. Use the token above to reset manually.';
+        response.expiresIn = '15 minutes';
       }
+
+      // Log email sending result (don't expose to client)
+      if (!emailResult.sent) {
+        console.warn('[Password Reset] Reset email not sent:', emailResult.error);
+      } else {
+        console.log('[Password Reset] Reset email sent to:', normalizedEmail);
+      }
+      
+      return res.json(response);
     }
     
     // Return success even if user doesn't exist (security: don't reveal if email exists)

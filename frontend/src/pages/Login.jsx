@@ -27,11 +27,11 @@ export default function Login() {
     e.preventDefault();
     try {
       const { data } = await api.post('/api/auth/login', { email, password });
-      setAuth(data.token);
-      localStorage.setItem('token', data.token);
+      // Tokens are now in httpOnly cookies, no need to store in localStorage
+      // Only store username for display purposes
       if (data?.user?.username) localStorage.setItem('username', data.user.username);
       
-      // Handle "Remember me" preference
+      // Handle "Remember me" preference (for email only)
       if (rememberMe) {
         localStorage.setItem('typex_remember_me', 'true');
         localStorage.setItem('typex_saved_email', email);

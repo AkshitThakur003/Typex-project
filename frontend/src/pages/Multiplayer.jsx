@@ -92,8 +92,9 @@ export default function Multiplayer() {
 
   // central socket initializer (re)runs when auth state changes
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    // With cookie-based auth, we check if user is authenticated via the user state
+    // instead of checking localStorage for token
+    if (!isAuthenticated) {
       // ensure no stale socket when logged out - clean up properly
       if (socketRef.current) {
         socketRef.current.removeAllListeners();
@@ -115,7 +116,9 @@ export default function Multiplayer() {
     const url = WS_BASE;
     const s = io(url, {
       path: '/socket.io',
-      auth: { token },
+      // Tokens are now in httpOnly cookies, which are sent automatically
+      // No need to pass token in auth object - backend will read from cookies
+      withCredentials: true, // Send cookies with socket.io requests
       transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: Infinity,
@@ -387,9 +390,9 @@ export default function Multiplayer() {
     });
 
     return () => s?.disconnect?.();
-    // reinit when auth (user) changes
+    // reinit when auth state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!user]);
+  }, [isAuthenticated]);
 
   const progress = useMemo(() => {
     if (!room?.text) return 0;

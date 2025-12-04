@@ -43,18 +43,33 @@ export function PreferencesProvider({ children }) {
   const [preferences, setPreferences] = useState(defaultPrefs);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      setAuth(token);
-      refreshUser();
-    }
+    // With cookie-based auth, we can't check for tokens in localStorage
+    // Just try to refresh user - if cookies exist, it will work
+    refreshUser();
   }, []);
 
   // -- end init
 
   async function refreshUser() {
     try {
-      const { data } = await api.get('/api/auth/me');
+      // Use validateStatus to prevent 401 from being treated as an error
+      // This prevents axios from logging it to console
+      const response = await api.get('/api/auth/me', {
+        validateStatus: (status) => {
+          // Treat 401 as a valid response (user not logged in is expected)
+          // This prevents axios from logging it as an error
+          return status === 200 || status === 401;
+        }
+      });
+      
+      // If 401, user is not authenticated - this is expected
+      if (response.status === 401) {
+        setUser(null);
+        return;
+      }
+      
+      // User is authenticated
+      const data = response.data;
       setUser(data);
       // Merge server prefs over defaults; tolerate older schema
       if (data?.preferences) {
@@ -72,15 +87,28 @@ export function PreferencesProvider({ children }) {
         setPreferences(merged);
       }
     } catch (err) {
-      console.error('[PreferencesContext] Failed to refresh user:', err?.message || err);
+      // Only log unexpected errors (not 401s, which are handled above)
+      if (err?.response?.status !== 401) {
+        console.error('[PreferencesContext] Failed to refresh user:', err?.message || err);
+      }
+      setUser(null);
     }
   }
 
-  function logout() {
-    setAuth(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    setUser(null);
+  async function logout() {
+    try {
+      // Call logout endpoint to clear cookies on server
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      // Even if logout fails, clear local state
+      console.error('[Logout] Error:', err);
+    } finally {
+      // Clear local state
+      setAuth(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      setUser(null);
+    }
   }
 
   return (

@@ -24,6 +24,13 @@ const userSchema = new mongoose.Schema({
   preferences: { type: preferencesSchema, default: () => ({}) },
   resetToken: { type: String, default: null },
   resetTokenExpiry: { type: Date, default: null },
+  // Email verification
+  emailVerified: { type: Boolean, default: false },
+  emailVerificationToken: { type: String, default: null },
+  emailVerificationExpiry: { type: Date, default: null },
+  // Refresh token for JWT rotation
+  refreshToken: { type: String, default: null },
+  refreshTokenExpiry: { type: Date, default: null },
   // OAuth fields
   oauthProvider: { type: String, enum: ['google'], default: null },
   oauthId: { type: String, default: null }, // Provider-specific user ID
@@ -39,7 +46,15 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Compound index for OAuth lookups
-userSchema.index({ oauthProvider: 1, oauthId: 1 }, { unique: true, sparse: true });
+// Use partial index to only index documents where oauthProvider is a string (not null)
+// This prevents duplicate key errors for regular users (where both fields are null)
+userSchema.index(
+  { oauthProvider: 1, oauthId: 1 }, 
+  { 
+    unique: true, 
+    partialFilterExpression: { oauthProvider: { $type: 'string' } }
+  }
+);
 // Note: username and email already have unique indexes from the schema definition (unique: true)
 // Index for XP/level queries
 userSchema.index({ level: -1, totalXp: -1 });

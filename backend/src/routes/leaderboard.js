@@ -39,38 +39,25 @@ function getDateFilter(period) {
 router.post('/', auth, async (req, res) => {
   try {
     const { username, wpm, accuracy, finishTime, mode } = req.body || {};
-    console.log('[Leaderboard POST] Received:', { username, wpm, accuracy, finishTime, mode, userId: req.user?.id });
     
     // Verify the authenticated user matches the username being submitted
     if (req.user.username !== username) {
-      console.error('[Leaderboard POST] Username mismatch:', { tokenUsername: req.user.username, submittedUsername: username });
       return res.status(403).json({ error: 'Cannot submit scores for other users' });
     }
     
     if (!username || typeof wpm !== 'number' || typeof accuracy !== 'number' || !mode) {
-      console.error('[Leaderboard POST] Validation failed:', { 
-        username, 
-        wpm, 
-        wpmType: typeof wpm, 
-        accuracy, 
-        accuracyType: typeof accuracy, 
-        mode 
-      });
       return res.status(400).json({ error: 'username, wpm, accuracy and mode are required' });
     }
     if (!['practice', 'multiplayer'].includes(mode)) {
-      console.error('[Leaderboard POST] Invalid mode:', mode);
       return res.status(400).json({ error: 'Invalid mode. Must be "practice" or "multiplayer"' });
     }
     
     // Server-side validation for realistic values
     if (wpm < 0 || wpm > MAX_REALISTIC_WPM) {
-      console.error('[Leaderboard POST] Unrealistic WPM:', wpm);
       return res.status(400).json({ error: `WPM must be between 0 and ${MAX_REALISTIC_WPM}` });
     }
     
     if (accuracy < MIN_ACCURACY || accuracy > MAX_ACCURACY) {
-      console.error('[Leaderboard POST] Invalid accuracy:', accuracy);
       return res.status(400).json({ error: 'Accuracy must be between 0 and 100' });
     }
     
@@ -78,7 +65,6 @@ router.post('/', auth, async (req, res) => {
     let validatedFinishTime = null;
     if (typeof finishTime === 'number') {
       if (finishTime < MIN_FINISH_TIME) {
-        console.error('[Leaderboard POST] Unrealistic finish time:', finishTime);
         return res.status(400).json({ error: `Finish time must be at least ${MIN_FINISH_TIME} seconds` });
       }
       validatedFinishTime = finishTime;
@@ -91,20 +77,10 @@ router.post('/', auth, async (req, res) => {
       finishTime: validatedFinishTime,
       mode 
     });
-    console.log('[Leaderboard POST] Successfully saved:', { 
-      id: doc._id, 
-      username: doc.username, 
-      wpm: doc.wpm, 
-      accuracy: doc.accuracy, 
-      finishTime: doc.finishTime,
-      mode: doc.mode,
-      createdAt: doc.createdAt 
-    });
     res.json({ ok: true, id: doc._id });
   } catch (e) {
-    console.error('[Leaderboard POST] Error:', e);
-    console.error('[Leaderboard POST] Error stack:', e.stack);
-    res.status(500).json({ error: 'Failed to save score', details: e.message });
+    console.error('[Leaderboard POST] Error:', e.message);
+    res.status(500).json({ error: 'Failed to save score' });
   }
 });
 

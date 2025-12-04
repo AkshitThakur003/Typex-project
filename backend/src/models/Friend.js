@@ -69,6 +69,12 @@ friendSchema.statics.getFriends = async function(userId) {
     const friend = friendship.requester._id.toString() === userId.toString()
       ? friendship.recipient
       : friendship.requester;
+    
+    // Handle case where populate might return null
+    if (!friend || !friend._id) {
+      return null;
+    }
+    
     return {
       _id: friend._id,
       username: friend.username,
@@ -79,7 +85,7 @@ friendSchema.statics.getFriends = async function(userId) {
       friendshipId: friendship._id,
       createdAt: friendship.createdAt,
     };
-  });
+  }).filter(Boolean); // Remove null entries
 };
 
 // Static method to get pending requests for a user
