@@ -32,12 +32,17 @@ const getRefreshTokenSecret = () => {
 // Cookie configuration
 const getCookieOptions = () => {
   const isProduction = process.env.NODE_ENV === 'production';
+  // For cross-domain deployments (frontend and backend on different domains),
+  // we need sameSite: 'none' with secure: true
+  // 'lax' works for same-site redirects, but OAuth requires 'none' for cross-domain
+  const sameSiteValue = isProduction ? 'none' : 'lax';
+  
   return {
     httpOnly: true, // Prevent XSS attacks
-    secure: isProduction, // Only send over HTTPS in production
-    sameSite: isProduction ? 'strict' : 'lax', // CSRF protection
+    secure: isProduction, // Only send over HTTPS in production (required for sameSite: 'none')
+    sameSite: sameSiteValue, // 'none' for cross-domain, 'lax' for same-domain
     path: '/',
-    maxAge: isProduction ? 7 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   };
 };
 
