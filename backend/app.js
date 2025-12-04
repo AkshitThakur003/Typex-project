@@ -61,12 +61,28 @@ function createApp() {
   app.use(cors({
     credentials: true,
     origin: (origin, callback) => {
-      if (!origin || NODE_ENV === 'test' || NODE_ENV === 'development') {
+      // Allow requests with no origin (e.g., mobile apps, Postman)
+      if (!origin) {
         return callback(null, true);
       }
+      
+      // Allow all origins in development/test
+      if (NODE_ENV === 'test' || NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      
+      // Check exact match in allowed origins
       if (allowedOrigins.has(origin)) {
         return callback(null, true);
       }
+      
+      // Allow all Vercel deployments (preview and production)
+      // This matches: *.vercel.app (preview deployments)
+      // And: typex-project.vercel.app (production)
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      
       return callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
     },
   }));
